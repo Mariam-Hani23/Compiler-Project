@@ -180,7 +180,7 @@ namespace Rynix_Compiler
                     }
                 }
 
-                // Identifiers and reserved words
+                // Identifiers, reserved words, and Array data types
                 if (IsLetter(current) || current == '_')
                 {
                     int start = i;
@@ -197,14 +197,89 @@ namespace Rynix_Compiler
                     string lexeme =
                         SourceCode.Substring(start, i - start);
 
+                    // Treat Array<ElementType> as one Array data-type token.
+                    if (lexeme == "Array")
+                    {
+                        int j = i;
+
+                        while (j < SourceCode.Length &&
+                               char.IsWhiteSpace(SourceCode[j]))
+                        {
+                            j++;
+                        }
+
+                        if (j < SourceCode.Length && SourceCode[j] == '<')
+                        {
+                            j++;
+
+                            while (j < SourceCode.Length &&
+                                   char.IsWhiteSpace(SourceCode[j]))
+                            {
+                                j++;
+                            }
+
+                            int typeStart = j;
+
+                            while (j < SourceCode.Length &&
+                                   IsLetter(SourceCode[j]))
+                            {
+                                j++;
+                            }
+
+                            string elementType =
+                                SourceCode.Substring(typeStart, j - typeStart);
+
+                            bool validType =
+                                elementType == "Int" ||
+                                elementType == "Float" ||
+                                elementType == "String" ||
+                                elementType == "Char" ||
+                                elementType == "Bool";
+
+                            while (j < SourceCode.Length &&
+                                   char.IsWhiteSpace(SourceCode[j]))
+                            {
+                                j++;
+                            }
+
+                            if (validType &&
+                                j < SourceCode.Length &&
+                                SourceCode[j] == '>')
+                            {
+                                j++;
+
+                                string arrayType =
+                                    SourceCode.Substring(start, j - start);
+
+                                Tokens.Add(new Token
+                                {
+                                    lex = arrayType,
+                                    token_type = Token_Class.Array
+                                });
+
+                                i = j;
+                                continue;
+                            }
+                        }
+                    }
+
                     FindTokenClass(lexeme, SourceCode, start);
                     continue;
                 }
 
-                // Integer and Float literals
-                if (char.IsDigit(current))
+                // Integer and Float literals: [+-]?[0-9]+(\.[0-9]+)?
+                if (char.IsDigit(current) ||
+                    ((current == '+' || current == '-') &&
+                     i + 1 < SourceCode.Length &&
+                     char.IsDigit(SourceCode[i + 1])))
                 {
                     int start = i;
+
+                    // Optional sign is part of the number token.
+                    if (SourceCode[i] == '+' || SourceCode[i] == '-')
+                    {
+                        i++;
+                    }
 
                     while (i < SourceCode.Length &&
                            char.IsDigit(SourceCode[i]))
@@ -534,6 +609,13 @@ namespace Rynix_Compiler
             int i = 0;
             bool hasIntegerDigit = false;
             bool hasFractionDigit = false;
+
+            if (lexeme[i] == '+' || lexeme[i] == '-')
+            {
+                i++;
+                if (i >= lexeme.Length)
+                    return false;
+            }
 
             while (i < lexeme.Length &&
                    char.IsDigit(lexeme[i]))
