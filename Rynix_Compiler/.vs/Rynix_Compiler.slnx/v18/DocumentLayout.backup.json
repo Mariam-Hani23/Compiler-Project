@@ -15,7 +15,7 @@
       "RelativeMoniker": "D:0:0:{5E3F8A31-2672-4B8F-AD00-DFF559476A98}|Rynix_Compiler\\Rynix_Compiler.csproj|solutionrelative:rynix_compiler\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{5E3F8A31-2672-4B8F-AD00-DFF559476A98}|Rynix_Compiler\\Rynix_Compiler.csproj|c:\\users\\mm\\desktop\\compiler-project\\rynix_compiler\\rynix_compiler\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{5E3F8A31-2672-4B8F-AD00-DFF559476A98}|Rynix_Compiler\\Rynix_Compiler.csproj|C:\\Users\\mm\\Desktop\\Compiler-Project\\Rynix_Compiler\\rynix_compiler\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{5E3F8A31-2672-4B8F-AD00-DFF559476A98}|Rynix_Compiler\\Rynix_Compiler.csproj|solutionrelative:rynix_compiler\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
@@ -48,7 +48,7 @@
               "RelativeDocumentMoniker": "Rynix_Compiler\\Scanner.cs",
               "ToolTip": "C:\\Users\\mm\\Desktop\\Compiler-Project\\Rynix_Compiler\\Rynix_Compiler\\Scanner.cs",
               "RelativeToolTip": "Rynix_Compiler\\Scanner.cs",
-              "ViewState": "AgIAAJICAAAAZmZmZuYQwJwCAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAACgBAAAADDMzMzMDwNMBAAAqAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-25T04:20:12.262Z",
               "EditorCaption": ""
@@ -62,8 +62,7 @@
               "ToolTip": "C:\\Users\\mm\\Desktop\\Compiler-Project\\Rynix_Compiler\\Rynix_Compiler\\Form1.cs [Design]",
               "RelativeToolTip": "Rynix_Compiler\\Form1.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-23T11:54:25.387Z",
-              "EditorCaption": " [Design]"
+              "WhenOpened": "2026-10-23T11:54:25.387Z"
             },
             {
               "$type": "Document",
@@ -75,8 +74,7 @@
               "RelativeToolTip": "Rynix_Compiler\\Program.cs",
               "ViewState": "AgIAAAQAAAAALDMzMzMLwAwAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-23T11:15:10.689Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-23T11:15:10.689Z"
             },
             {
               "$type": "Document",
@@ -88,8 +86,7 @@
               "RelativeToolTip": "Rynix_Compiler\\Form1.Designer.cs",
               "ViewState": "AgIAAB0AAACA0MzMzAwvwIEAAAAyAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-23T11:13:37.918Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-23T11:13:37.918Z"
             },
             {
               "$type": "Document",
@@ -113,8 +110,7 @@
               "RelativeToolTip": "Rynix_Compiler\\Form1.cs",
               "ViewState": "AgIAADwAAAAAAAAAAAAuwFYAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-20T15:58:15.706Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-20T15:58:15.706Z"
             },
             {
               "$type": "Document",
@@ -125,8 +121,7 @@
               "ToolTip": "C:\\Users\\mm\\Desktop\\Compiler-Project\\Rynix_Compiler\\Rynix_Compiler\\Program.cs [Design]",
               "RelativeToolTip": "Rynix_Compiler\\Program.cs [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-23T12:07:55.518Z",
-              "EditorCaption": " [Design]"
+              "WhenOpened": "2026-10-23T12:07:55.518Z"
             }
           ]
         }

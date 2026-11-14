@@ -1,6 +1,6 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Rynix_Compiler
 {
@@ -40,6 +40,54 @@ namespace Rynix_Compiler
 
         private readonly Dictionary<string, Token_Class> Operators =
             new Dictionary<string, Token_Class>();
+
+        private readonly Regex WhiteSpaceRegex =
+            new Regex(@"\G\s", RegexOptions.Compiled);
+
+        private readonly Regex LineCommentRegex =
+            new Regex(@"\G//[^\r\n]*", RegexOptions.Compiled);
+
+        private readonly Regex MultiLineCommentRegex =
+            new Regex(@"\G/\*[\s\S]*?\*/", RegexOptions.Compiled);
+
+        private readonly Regex MultiLineCommentStartRegex =
+            new Regex(@"\G/\*", RegexOptions.Compiled);
+
+        private readonly Regex IdentifierRegex =
+            new Regex(@"\G[A-Za-z_][A-Za-z0-9_]*", RegexOptions.Compiled);
+
+        private readonly Regex ArrayTypeRegex =
+            new Regex(@"\GArray\s*<\s*(?:Int|Float|String|Char|Bool)\s*>", RegexOptions.Compiled);
+
+        private readonly Regex NumberRegex =
+            new Regex(@"\G[+-]?[0-9]+(?:\.[0-9]+)?", RegexOptions.Compiled);
+
+        private readonly Regex NumberIdentifierRegex =
+            new Regex(@"\G[A-Za-z_][A-Za-z0-9_]*", RegexOptions.Compiled);
+
+        private readonly Regex StringRegex =
+            new Regex("\\G\"(?:\\\\.|[^\"\\\\\\r\\n])*\"", RegexOptions.Compiled);
+
+        private readonly Regex InvalidStringRegex =
+            new Regex("\\G\"(?:\\\\[^\\r\\n]|[^\"\\\\\\r\\n])*(?:\\\\)?", RegexOptions.Compiled);
+
+        private readonly Regex CharRegex =
+            new Regex("\\G'(?:\\\\.|[^'\\\\\\r\\n])'", RegexOptions.Compiled);
+
+        private readonly Regex InvalidCharRegex =
+            new Regex("\\G'(?:\\\\[^\\r\\n]|[^'\\r\\n])*'?", RegexOptions.Compiled);
+
+        private readonly Regex TwoCharacterOperatorRegex =
+            new Regex(@"\G(?:==|!=|<=|>=|\.\.)", RegexOptions.Compiled);
+
+        private readonly Regex OneCharacterOperatorRegex =
+            new Regex(@"\G[+\-*/%=<>.,:(){}\[\]]", RegexOptions.Compiled);
+
+        private readonly Regex IdentifierValidationRegex =
+            new Regex(@"\A[A-Za-z_][A-Za-z0-9_]*\z", RegexOptions.Compiled);
+
+        private readonly Regex NumberValidationRegex =
+            new Regex(@"\A[+-]?[0-9]+(?:\.[0-9]+)?\z", RegexOptions.Compiled);
 
         public Scanner()
         {
@@ -108,209 +156,95 @@ namespace Rynix_Compiler
 
             while (i < SourceCode.Length)
             {
-                char current = SourceCode[i];
+                Match match;
+                int start = i;
 
-                if (char.IsWhiteSpace(current))
+                match = WhiteSpaceRegex.Match(SourceCode, i);
+                if (match.Success && match.Index == i)
                 {
-                    i++;
+                    i += match.Length;
                     continue;
                 }
 
                 // Comments
-                if (current == '/' && i + 1 < SourceCode.Length)
+                match = LineCommentRegex.Match(SourceCode, i);
+                if (match.Success && match.Index == i)
                 {
-                    if (SourceCode[i + 1] == '/')
+                    Tokens.Add(new Token
                     {
-                        int start = i;
-                        i += 2;
+                        lex = match.Value,
+                        token_type = Token_Class.LineComment
+                    });
 
-                        while (i < SourceCode.Length &&
-                               SourceCode[i] != '\n' &&
-                               SourceCode[i] != '\r')
-                        {
-                            i++;
-                        }
+                    i += match.Length;
+                    continue;
+                }
 
-                        Tokens.Add(new Token
-                        {
-                            lex = SourceCode.Substring(start, i - start),
-                            token_type = Token_Class.LineComment
-                        });
-
-                        continue;
-                    }
-
-                    if (SourceCode[i + 1] == '*')
+                match = MultiLineCommentRegex.Match(SourceCode, i);
+                if (match.Success && match.Index == i)
+                {
+                    Tokens.Add(new Token
                     {
-                        int start = i;
-                        i += 2;
-                        bool closed = false;
+                        lex = match.Value,
+                        token_type = Token_Class.MultiLineComment
+                    });
 
-                        while (i + 1 < SourceCode.Length)
-                        {
-                            if (SourceCode[i] == '*' &&
-                                SourceCode[i + 1] == '/')
-                            {
-                                i += 2;
-                                closed = true;
-                                break;
-                            }
+                    i += match.Length;
+                    continue;
+                }
 
-                            i++;
-                        }
+                match = MultiLineCommentStartRegex.Match(SourceCode, i);
+                if (match.Success && match.Index == i)
+                {
+                    AddError(
+                        "Unclosed multiline comment",
+                        SourceCode,
+                        start);
 
-                        if (!closed)
-                        {
-                            AddError(
-                                "Unclosed multiline comment",
-                                SourceCode,
-                                start);
-
-                            // The rest of the file belongs to this comment.
-                            break;
-                        }
-
-                        Tokens.Add(new Token
-                        {
-                            lex = SourceCode.Substring(start, i - start),
-                            token_type = Token_Class.MultiLineComment
-                        });
-
-                        continue;
-                    }
+                    // The rest of the file belongs to this comment.
+                    break;
                 }
 
                 // Identifiers, reserved words, and Array data types
-                if (IsLetter(current) || current == '_')
+                match = ArrayTypeRegex.Match(SourceCode, i);
+                if (match.Success && match.Index == i)
                 {
-                    int start = i;
-                    i++;
-
-                    while (i < SourceCode.Length &&
-                           (IsLetter(SourceCode[i]) ||
-                            char.IsDigit(SourceCode[i]) ||
-                            SourceCode[i] == '_'))
+                    Tokens.Add(new Token
                     {
-                        i++;
-                    }
+                        lex = match.Value,
+                        token_type = Token_Class.Array
+                    });
 
-                    string lexeme =
-                        SourceCode.Substring(start, i - start);
+                    i += match.Length;
+                    continue;
+                }
 
-                    // Treat Array<ElementType> as one Array data-type token.
-                    if (lexeme == "Array")
-                    {
-                        int j = i;
-
-                        while (j < SourceCode.Length &&
-                               char.IsWhiteSpace(SourceCode[j]))
-                        {
-                            j++;
-                        }
-
-                        if (j < SourceCode.Length && SourceCode[j] == '<')
-                        {
-                            j++;
-
-                            while (j < SourceCode.Length &&
-                                   char.IsWhiteSpace(SourceCode[j]))
-                            {
-                                j++;
-                            }
-
-                            int typeStart = j;
-
-                            while (j < SourceCode.Length &&
-                                   IsLetter(SourceCode[j]))
-                            {
-                                j++;
-                            }
-
-                            string elementType =
-                                SourceCode.Substring(typeStart, j - typeStart);
-
-                            bool validType =
-                                elementType == "Int" ||
-                                elementType == "Float" ||
-                                elementType == "String" ||
-                                elementType == "Char" ||
-                                elementType == "Bool";
-
-                            while (j < SourceCode.Length &&
-                                   char.IsWhiteSpace(SourceCode[j]))
-                            {
-                                j++;
-                            }
-
-                            if (validType &&
-                                j < SourceCode.Length &&
-                                SourceCode[j] == '>')
-                            {
-                                j++;
-
-                                string arrayType =
-                                    SourceCode.Substring(start, j - start);
-
-                                Tokens.Add(new Token
-                                {
-                                    lex = arrayType,
-                                    token_type = Token_Class.Array
-                                });
-
-                                i = j;
-                                continue;
-                            }
-                        }
-                    }
-
+                match = IdentifierRegex.Match(SourceCode, i);
+                if (match.Success && match.Index == i)
+                {
+                    string lexeme = match.Value;
                     FindTokenClass(lexeme, SourceCode, start);
+                    i += match.Length;
                     continue;
                 }
 
                 // Integer and Float literals: [+-]?[0-9]+(\.[0-9]+)?
-                if (char.IsDigit(current) ||
-                    ((current == '+' || current == '-') &&
-                     i + 1 < SourceCode.Length &&
-                     char.IsDigit(SourceCode[i + 1])))
+                match = NumberRegex.Match(SourceCode, i);
+                if (match.Success && match.Index == i &&
+                    (char.IsDigit(SourceCode[i]) ||
+                     ((SourceCode[i] == '+' || SourceCode[i] == '-') &&
+                      i + 1 < SourceCode.Length &&
+                      char.IsDigit(SourceCode[i + 1]))))
                 {
-                    int start = i;
+                    string number = match.Value;
+                    i += match.Length;
 
-                    // Optional sign is part of the number token.
-                    if (SourceCode[i] == '+' || SourceCode[i] == '-')
+                    Match invalidIdentifier =
+                        NumberIdentifierRegex.Match(SourceCode, i);
+
+                    if (invalidIdentifier.Success && invalidIdentifier.Index == i)
                     {
-                        i++;
-                    }
-
-                    while (i < SourceCode.Length &&
-                           char.IsDigit(SourceCode[i]))
-                    {
-                        i++;
-                    }
-
-                    if (i + 1 < SourceCode.Length &&
-                        SourceCode[i] == '.' &&
-                        char.IsDigit(SourceCode[i + 1]))
-                    {
-                        i++;
-
-                        while (i < SourceCode.Length &&
-                               char.IsDigit(SourceCode[i]))
-                        {
-                            i++;
-                        }
-                    }
-
-                    if (i < SourceCode.Length &&
-                        (IsLetter(SourceCode[i]) ||
-                         SourceCode[i] == '_'))
-                    {
-                        while (i < SourceCode.Length &&
-                               (IsLetter(SourceCode[i]) ||
-                                char.IsDigit(SourceCode[i]) ||
-                                SourceCode[i] == '_'))
-                        {
-                            i++;
-                        }
+                        i += invalidIdentifier.Length;
 
                         AddError(
                             "Invalid identifier or number: " +
@@ -320,9 +254,6 @@ namespace Rynix_Compiler
 
                         continue;
                     }
-
-                    string number =
-                        SourceCode.Substring(start, i - start);
 
                     if (IsNumber(number))
                     {
@@ -344,172 +275,108 @@ namespace Rynix_Compiler
                 }
 
                 // String literals
-                if (current == '"')
+                if (SourceCode[i] == '"')
                 {
-                    int start = i;
-                    i++;
-                    bool closed = false;
+                    match = StringRegex.Match(SourceCode, i);
 
-                    while (i < SourceCode.Length)
+                    if (match.Success && match.Index == i)
                     {
-                        char ch = SourceCode[i];
+                        string lexeme = match.Value;
 
-                        if (ch == '\n' || ch == '\r')
-                            break;
-
-                        if (ch == '\\')
+                        if (IsString(lexeme))
                         {
-                            if (i + 1 < SourceCode.Length &&
-                                SourceCode[i + 1] != '\n' &&
-                                SourceCode[i + 1] != '\r')
+                            Tokens.Add(new Token
                             {
-                                i += 2;
-                                continue;
-                            }
-
-                            i++;
-                            break;
+                                lex = lexeme,
+                                token_type = Token_Class.StringLiteral
+                            });
                         }
 
-                        if (ch == '"')
-                        {
-                            i++;
-                            closed = true;
-                            break;
-                        }
-
-                        i++;
-                    }
-
-                    string lexeme =
-                        SourceCode.Substring(start, i - start);
-
-                    if (closed && IsString(lexeme))
-                    {
-                        Tokens.Add(new Token
-                        {
-                            lex = lexeme,
-                            token_type = Token_Class.StringLiteral
-                        });
+                        i += match.Length;
                     }
                     else
                     {
+                        match = InvalidStringRegex.Match(SourceCode, i);
+                        string lexeme = match.Success && match.Index == i
+                            ? match.Value
+                            : SourceCode.Substring(i, 1);
+
                         AddError(
                             "Invalid or unclosed string: " + lexeme,
                             SourceCode,
                             start);
+
+                        i += lexeme.Length;
                     }
 
                     continue;
                 }
 
                 // Character literals
-                if (current == '\'')
+                if (SourceCode[i] == '\'')
                 {
-                    int start = i;
-                    i++;
+                    match = CharRegex.Match(SourceCode, i);
 
-                    if (i < SourceCode.Length &&
-                        SourceCode[i] != '\n' &&
-                        SourceCode[i] != '\r' &&
-                        SourceCode[i] != '\'')
+                    if (match.Success && match.Index == i)
                     {
-                        if (SourceCode[i] == '\\')
-                        {
-                            if (i + 1 < SourceCode.Length &&
-                                SourceCode[i + 1] != '\n' &&
-                                SourceCode[i + 1] != '\r')
-                            {
-                                i += 2;
-                            }
-                            else
-                            {
-                                i++;
-                            }
-                        }
-                        else
-                        {
-                            i++;
-                        }
-                    }
+                        string lexeme = match.Value;
 
-                    bool closed =
-                        i < SourceCode.Length &&
-                        SourceCode[i] == '\'';
+                        if (IsChar(lexeme))
+                        {
+                            Tokens.Add(new Token
+                            {
+                                lex = lexeme,
+                                token_type = Token_Class.CharLiteral
+                            });
+                        }
 
-                    if (closed)
-                    {
-                        i++;
+                        i += match.Length;
                     }
                     else
                     {
-                        // Recover to the next quote or line break.
-                        while (i < SourceCode.Length &&
-                               SourceCode[i] != '\'' &&
-                               SourceCode[i] != '\n' &&
-                               SourceCode[i] != '\r')
-                        {
-                            i++;
-                        }
+                        match = InvalidCharRegex.Match(SourceCode, i);
+                        string lexeme = match.Success && match.Index == i
+                            ? match.Value
+                            : SourceCode.Substring(i, 1);
 
-                        if (i < SourceCode.Length &&
-                            SourceCode[i] == '\'')
-                        {
-                            i++;
-                        }
-                    }
-
-                    string lexeme =
-                        SourceCode.Substring(start, i - start);
-
-                    if (closed && IsChar(lexeme))
-                    {
-                        Tokens.Add(new Token
-                        {
-                            lex = lexeme,
-                            token_type = Token_Class.CharLiteral
-                        });
-                    }
-                    else
-                    {
                         AddError(
                             "Invalid or unclosed character: " + lexeme,
                             SourceCode,
                             start);
+
+                        i += lexeme.Length;
                     }
 
                     continue;
                 }
 
                 // Two-character operators and separators
-                if (i + 1 < SourceCode.Length)
+                match = TwoCharacterOperatorRegex.Match(SourceCode, i);
+                if (match.Success && match.Index == i &&
+                    Operators.ContainsKey(match.Value))
                 {
-                    string twoChars = SourceCode.Substring(i, 2);
-
-                    if (Operators.ContainsKey(twoChars))
-                    {
-                        FindTokenClass(twoChars, SourceCode, i);
-                        i += 2;
-                        continue;
-                    }
+                    FindTokenClass(match.Value, SourceCode, i);
+                    i += match.Length;
+                    continue;
                 }
 
                 // One-character operators and separators
-                string oneChar = current.ToString();
-
-                if (Operators.ContainsKey(oneChar))
+                match = OneCharacterOperatorRegex.Match(SourceCode, i);
+                if (match.Success && match.Index == i &&
+                    Operators.ContainsKey(match.Value))
                 {
-                    FindTokenClass(oneChar, SourceCode, i);
+                    FindTokenClass(match.Value, SourceCode, i);
+                    i += match.Length;
                 }
                 else
                 {
                     AddError(
-                        "Unrecognized symbol: " + oneChar,
+                        "Unrecognized symbol: " + SourceCode[i],
                         SourceCode,
                         i);
-                }
 
-                i++;
+                    i++;
+                }
             }
         }
 
@@ -576,23 +443,7 @@ namespace Rynix_Compiler
 
         private bool IsIdentifier(string lexeme)
         {
-            if (string.IsNullOrEmpty(lexeme))
-                return false;
-
-            if (!IsLetter(lexeme[0]) && lexeme[0] != '_')
-                return false;
-
-            for (int i = 1; i < lexeme.Length; i++)
-            {
-                if (!IsLetter(lexeme[i]) &&
-                    !char.IsDigit(lexeme[i]) &&
-                    lexeme[i] != '_')
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return IdentifierValidationRegex.IsMatch(lexeme);
         }
 
         private bool IsLetter(char c)
@@ -603,66 +454,23 @@ namespace Rynix_Compiler
 
         private bool IsNumber(string lexeme)
         {
-            if (string.IsNullOrEmpty(lexeme))
-                return false;
-
-            int i = 0;
-            bool hasIntegerDigit = false;
-            bool hasFractionDigit = false;
-
-            if (lexeme[i] == '+' || lexeme[i] == '-')
-            {
-                i++;
-                if (i >= lexeme.Length)
-                    return false;
-            }
-
-            while (i < lexeme.Length &&
-                   char.IsDigit(lexeme[i]))
-            {
-                hasIntegerDigit = true;
-                i++;
-            }
-
-            if (i < lexeme.Length && lexeme[i] == '.')
-            {
-                i++;
-
-                while (i < lexeme.Length &&
-                       char.IsDigit(lexeme[i]))
-                {
-                    hasFractionDigit = true;
-                    i++;
-                }
-            }
-
-            return i == lexeme.Length &&
-                   hasIntegerDigit &&
-                   (lexeme.IndexOf('.') == -1 ||
-                    hasFractionDigit);
+            return NumberValidationRegex.IsMatch(lexeme);
         }
 
         private bool IsString(string lexeme)
         {
-            return lexeme.Length >= 2 &&
-                   lexeme[0] == '"' &&
-                   lexeme[lexeme.Length - 1] == '"';
+            return Regex.IsMatch(
+                lexeme,
+                "\\A\"(?:\\\\.|[^\"\\\\\\r\\n])*\"\\z",
+                RegexOptions.Compiled);
         }
 
         private bool IsChar(string lexeme)
         {
-            if (lexeme.Length < 3 ||
-                lexeme[0] != '\'' ||
-                lexeme[lexeme.Length - 1] != '\'')
-            {
-                return false;
-            }
-
-            string content =
-                lexeme.Substring(1, lexeme.Length - 2);
-
-            return content.Length == 1 ||
-                   (content.Length == 2 && content[0] == '\\');
+            return Regex.IsMatch(
+                lexeme,
+                "\\A'(?:\\\\.|[^'\\\\\\r\\n])'\\z",
+                RegexOptions.Compiled);
         }
     }
 }
